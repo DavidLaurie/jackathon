@@ -120,6 +120,7 @@ TokenData getOptimalTokenData(char[] file)
         TokenParams(40),
         TokenParams(48),
         TokenParams(64),
+        TokenParams(64, true),
     ];
 
     TokenParams bestParam = TokenParams(2);

@@ -6,7 +6,7 @@ import charstuff;
 struct TokenParams
 {
     byte maxTokenLength;
-    bool numbersSeparate;
+    bool quotedWords;
 }
 
 struct Token
@@ -14,7 +14,7 @@ struct Token
     char[] token;
 }
 
-Token getToken(char[] source, TokenParams params = TokenParams(0))
+Token getToken(char[] source, TokenParams params = TokenParams(64))
 {
     int maxTokenLength = params.maxTokenLength;
     if (maxTokenLength == 0)
@@ -37,7 +37,7 @@ Token getToken(char[] source, TokenParams params = TokenParams(0))
         return token;
     }
 
-    len = min(getWord(source), maxTokenLength);
+    len = min(getWord(source, params.quotedWords), maxTokenLength);
     if (len) {
         token.token = source[0..len];
         return token;
@@ -78,12 +78,16 @@ int getWhitespace(char[] source)
     return i;
 }
 
-int getWord(char[] source)
+int getWord(char[] source, bool quoted)
 {
     int i;
     for (i = 0; i < source.length; i += 1)
     {
         if (isWordChar(source[i]))
+        {
+            continue;
+        }
+        if (quoted && source[i] == '"')
         {
             continue;
         }
