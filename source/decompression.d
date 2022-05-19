@@ -3,6 +3,7 @@ module decompression;
 import std.stdio;
 import std.file;
 import std.conv;
+import bits;
 
 alias ReadToken = char[];
 
@@ -20,7 +21,7 @@ ushort readLittleShort(File *f)
     return buf[0] + (buf[1] << 8);
 }
 
-ulong readLittleInt(File* f)
+uint readLittleInt(File* f)
 {
     char[4] buf;
     f.rawRead(buf);
@@ -36,18 +37,24 @@ ReadToken readToken(File* f)
     return token;
 }
 
-ulong[] readTokens(File* f, int numTokens, int bitSize)
+uint[] readTokens(File* f, int bitSize)
 {
-    if (bitSize != 16)
+    int numTokens = cast(int) readLittleInt(f);
+    int compressedDataSize = cast(int) readLittleInt(f);
+    writeln(to!string(numTokens) ~ " tokens");
+
+    if (bitSize >= 32)
     {
-        throw new Exception("Bitsize must be 16 at the moment");
+        throw new Exception("Bitsize must be less than 32");
     }
 
-    ulong[] tokens;
-    for (int i = 0; i < numTokens; i += 1)
+    uint[] data;
+    for (int i = 0; i < compressedDataSize; i += 1)
     {
-        tokens ~= readLittleShort(f);
+        data ~= readLittleShort(f);
     }
+
+    uint[] tokens = bitUnpack(data, numTokens, bitSize);
 
     return tokens;
 }
@@ -87,13 +94,11 @@ int decompress(string source, string dest)
     }
 
     // 3. Read the remainder of the file and uncompact it to a token list.
-    int numTokens = cast(int) readLittleInt(input);
-    writeln(to!string(numTokens) ~ " tokens");
-    ulong[] tokens = readTokens(input, numTokens, bitSize);
+    uint[] tokens = readTokens(input, bitSize);
 
     // 4. Write all the tokens.
     auto destFile = new File(dest, "wb");
-    foreach (ulong token; tokens)
+    foreach (uint token; tokens)
     {
         destFile.rawWrite(tokenList[token]);
     }

@@ -4,6 +4,7 @@ import std.stdio;
 import std.file;
 import std.conv;
 import tokenize;
+import bits;
 
 void writeByte(File* f, char c)
 {
@@ -20,7 +21,7 @@ void writeLittleShort(File* f, ushort s)
     f.rawWrite(buffer);
 }
 
-void writeLittleInt(File* f, ulong i)
+void writeLittleInt(File* f, uint i)
 {
     char[4] buffer = [
         i & 0xff,
@@ -40,20 +41,21 @@ void writeTokenList(File* f, Token[] tokens)
     }
 }
 
-void writeCompactedTokens(File* f, ulong[] tokens, int bitSize)
+void writeCompactedTokens(File* f, uint[] tokens, int bitSize)
 {
-    // TODO: We really want to squish this down with a blit type thing.
+    uint[] packed = bitPack(tokens, bitSize);
 
-    if (bitSize != 16)
+    if (bitSize >= 32)
     {
-        throw new Exception("Bitsize must be 16 at the moment");
+        throw new Exception("Bitsize must be less than 32");
     }
 
-    writeLittleInt(f, tokens.length);
+    writeLittleInt(f, cast(int)tokens.length);
+    writeLittleInt(f, cast(int)packed.length);
 
-    foreach (ulong token; tokens)
+    foreach (uint datum; packed)
     {
-        writeLittleShort(f, cast(ushort)token);
+        writeLittleInt(f, datum);
     }
 }
 
@@ -72,17 +74,17 @@ int compress(string source, string dest)
     // 1. Tokenize file into tokens.
     //    Generate a list of unique tokens in the order they were found, and a list of the indexes of each token that was found.
     Token[] tokenList;
-    ulong[string] tokenIndex;
-    ulong[] tokens;
-    ulong pos = 0;
+    uint[string] tokenIndex;
+    uint[] tokens;
+    uint pos = 0;
     while (pos < file.length)
     {
         Token token = getToken(file[pos..$]);
         auto ptr = (token.token in tokenIndex);
         if (ptr is null) {
             tokenList ~= token;
-            tokenIndex[token.token.idup] = tokenList.length - 1;
-            tokens ~= tokenList.length - 1;
+            tokenIndex[token.token.idup] = cast(uint)(tokenList.length - 1);
+            tokens ~= cast(uint)(tokenList.length - 1);
         } else {
             tokens ~= *ptr;
         }
@@ -91,14 +93,19 @@ int compress(string source, string dest)
 
     writeln(to!string(tokenList.length) ~ " unique tokens");
     writeln(to!string(tokens.length) ~ " tokens total");
-    int bitSize = 16; // TODO: Get this from the number of unique tokens.
+    uint bitSize = 1;
+    while ((1 << (bitSize - 1)) < tokenList.length)
+    {
+        bitSize += 1;
+    }
+    writeln("Bitsize " ~ to!string(bitSize));
 
     // 2. Output the number of unique tokens, and the bit length required to index any token.
     auto destFile = new File(dest, "wb");
     char[4] header = "DLCF";
     destFile.rawWrite(header);
-    writeLittleInt(destFile, tokenList.length);
-    writeByte(destFile, cast(char) bitSize); // Quick hack - just use 16 bits
+    writeLittleInt(destFile, cast(uint) tokenList.length);
+    writeByte(destFile, cast(char) bitSize);
 
     // 3. Output the tokens as length-preceeded strings.
     writeTokenList(destFile, tokenList);
