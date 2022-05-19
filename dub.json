@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"David Laurie"
+	],
+	"copyright": "Copyright © 2022, David Laurie",
+	"description": "A minimal D application.",
+	"license": "proprietary",
+	"name": "jackathon"
+}
