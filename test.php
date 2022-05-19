@@ -51,6 +51,8 @@ function test(): void
         $ratio = (1 - (mb_strlen($compressed) / mb_strlen($input))) * 100;
         $ratios[$file] = $ratio;
         echo 'File: ' . $file . ', Ratio: ' . round($ratio) . "%\n";
+
+        print "---------------------------------------\n";
     }
 
     $ratioAverage = array_reduce($ratios, fn ($carry, $ratio) => $carry + $ratio) / count($ratios);
