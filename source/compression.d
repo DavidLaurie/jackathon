@@ -36,7 +36,7 @@ void writeTokenList(File* f, Token[] tokens)
 {
     foreach (Token token; tokens)
     {
-        writeLittleShort(f, cast(ushort)token.token.length);
+        writeByte(f, cast(byte)token.token.length);
         f.rawWrite(token.token);
     }
 }

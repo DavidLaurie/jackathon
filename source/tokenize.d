@@ -1,5 +1,7 @@
 module tokenize;
 
+import std.algorithm.comparison;
+
 struct Token
 {
     char[] token;
@@ -10,25 +12,25 @@ Token getToken(char[] source)
     Token token;
     int len;
 
-    len = getNewlines(source);
+    len = min(getNewlines(source), 255);
     if (len) {
         token.token = source[0..len];
         return token;
     }
 
-    len = getWhitespace(source);
+    len = min(getWhitespace(source), 255);
     if (len) {
         token.token = source[0..len];
         return token;
     }
 
-    len = getWord(source);
+    len = min(getWord(source), 255);
     if (len) {
         token.token = source[0..len];
         return token;
     }
 
-    len = getAnythingElse(source);
+    len = min(getAnythingElse(source), 255);
     if (len) {
         token.token = source[0..len];
         return token;

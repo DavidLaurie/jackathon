@@ -30,7 +30,7 @@ uint readLittleInt(File* f)
 
 ReadToken readToken(File* f)
 {
-    ushort length = readLittleShort(f);
+    uint length = cast(uint)readByte(f);
     ReadToken token;
     token.length = length;
     f.rawRead(token);
@@ -51,12 +51,10 @@ uint[] readTokens(File* f, int bitSize)
     uint[] data;
     for (int i = 0; i < compressedDataSize; i += 1)
     {
-        data ~= readLittleShort(f);
+        data ~= readLittleInt(f);
     }
 
-    uint[] tokens = bitUnpack(data, numTokens, bitSize);
-
-    return tokens;
+    return bitUnpack(data, numTokens, bitSize);
 }
 
 int decompress(string source, string dest)
