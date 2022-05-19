@@ -69,30 +69,32 @@ unittest
         0x000000b5,
         0x000000c7,
         0x000000d9,
+        0x000000ea,
     ];
 
     uint[] packed1 = bitPack(data, 8);
-
-    assert(packed1.length == 1);
+    assert(packed1.length == 2);
     assert(packed1[0] == 0xd9c7b5a3);
+    assert(packed1[1] == 0x000000ea);
 
     uint[] packed2 = bitPack(data, 12);
-
     assert(packed2.length == 2);
     assert(packed2[0] == 0xc70b50a3);
-    assert(packed2[1] == 0x00000d90);
+    assert(packed2[1] == 0x00ea0d90);
 
-    uint[] unpacked1 = bitUnpack(packed1, 4, 8);
-    assert(unpacked1.length = 4);
-
+    uint[] unpacked1 = bitUnpack(packed1, 5, 8);
+    assert(unpacked1.length == 5);
     assert(unpacked1[0] == 0x000000a3);
     assert(unpacked1[1] == 0x000000b5);
     assert(unpacked1[2] == 0x000000c7);
     assert(unpacked1[3] == 0x000000d9);
+    assert(unpacked1[4] == 0x000000ea);
 
-    uint[] unpacked2 = bitUnpack(packed2, 4, 12);
+    uint[] unpacked2 = bitUnpack(packed2, 5, 12);
+    assert(unpacked2.length == 5);
     assert(unpacked2[0] == 0x000000a3);
     assert(unpacked2[1] == 0x000000b5);
     assert(unpacked2[2] == 0x000000c7);
     assert(unpacked2[3] == 0x000000d9);
+    assert(unpacked2[4] == 0x000000ea);
 }
