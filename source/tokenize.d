@@ -1,6 +1,7 @@
 module tokenize;
 
 import std.algorithm.comparison;
+import charstuff;
 
 struct Token
 {
@@ -44,7 +45,7 @@ int getNewlines(char[] source)
     int i;
     for (i = 0; i < source.length; i += 1)
     {
-        if (source[i] != '\n' && source[i] != '\r')
+        if (!isNewline(source[i]))
         {
             break;
         }
@@ -57,7 +58,7 @@ int getWhitespace(char[] source)
     int i;
     for (i = 0; i < source.length; i += 1)
     {
-        if (source[i] != ' ' && source[i] != '\t')
+        if (!isNonNewlineWhitespace(source[i]))
         {
             break;
         }
@@ -67,40 +68,20 @@ int getWhitespace(char[] source)
 
 int getWord(char[] source)
 {
-    bool isLower = false;
     int i;
 
     for (i = 0; i < source.length; i += 1)
     {
-        if (source[i] >= 'a' && source[i] <= 'z')
-        {
-            isLower = true;
-            continue;
-        }
-
-        if (source[i] >= 'A' && source[i] <= 'Z')
-        {
-            // if (isLower)
-            // {
-            //     break;
-            // }
-            continue;
-        }
-
-        // Count unicode as word chars
-        if ((source[i] & 0b11000000) == 0b10000000
-            || (source[i] & 0b11100000) == 0b11000000
-            || (source[i] & 0b11110000) == 0b11100000
-            || (source[i] & 0b11111000) == 0b11110000
-        ) {
-            continue;
-        }
-
-        // Count ext ascii as word chars
-        if (source[i] >= 0x80)
+        if (isWordChar(source[i]))
         {
             continue;
         }
+
+        // Allow one space after a 1 or 2 letter word to join with another word
+        // if (i > 1 && i < 4 && source[i] == ' ' && i < source.length - 1 && isWordChar(source[i+1]))
+        // {
+        //     continue;
+        // }
 
         break;
     }
@@ -113,11 +94,7 @@ int getAnythingElse(char[] source)
     for (i = 0; i < source.length; i += 1)
     {
         char c = source[i];
-        if (c == '\n' || c == '\r'
-            ||c == ' ' ||c == '\t'
-            || (c >= 'a' && c <= 'z')
-            || (c >= 'A' && c <= 'Z')
-        ) {
+        if (isWordChar(c) || isNewline(c) || isNonNewlineWhitespace(c)) {
             break;
         }
     }

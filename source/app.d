@@ -26,6 +26,10 @@ int main(string[] argv)
     {
         return decompress(argv[2], argv[3]);
     }
+    else if (argv[1] == "dump-tokens")
+    {
+        return dumpTokens(argv[2], argv[3]);
+    }
     else
     {
         writeln("Invalid mode");

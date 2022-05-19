@@ -59,6 +59,31 @@ void writeCompactedTokens(File* f, uint[] tokens, int bitSize)
     }
 }
 
+struct TokenData
+{
+    Token[] tokenList;
+    uint[string] tokenIndex;
+    uint[] tokens;
+
+    this(char[] file)
+    {
+        uint pos = 0;
+        while (pos < file.length)
+        {
+            Token token = getToken(file[pos..$]);
+            auto ptr = (token.token in tokenIndex);
+            if (ptr is null) {
+                tokenList ~= token;
+                tokenIndex[token.token.idup] = cast(uint)(tokenList.length - 1);
+                tokens ~= cast(uint)(tokenList.length - 1);
+            } else {
+                tokens ~= *ptr;
+            }
+            pos += token.token.length;
+        }
+    }
+}
+
 int compress(string source, string dest)
 {
     if (exists(dest))
@@ -73,28 +98,12 @@ int compress(string source, string dest)
 
     // 1. Tokenize file into tokens.
     //    Generate a list of unique tokens in the order they were found, and a list of the indexes of each token that was found.
-    Token[] tokenList;
-    uint[string] tokenIndex;
-    uint[] tokens;
-    uint pos = 0;
-    while (pos < file.length)
-    {
-        Token token = getToken(file[pos..$]);
-        auto ptr = (token.token in tokenIndex);
-        if (ptr is null) {
-            tokenList ~= token;
-            tokenIndex[token.token.idup] = cast(uint)(tokenList.length - 1);
-            tokens ~= cast(uint)(tokenList.length - 1);
-        } else {
-            tokens ~= *ptr;
-        }
-        pos += token.token.length;
-    }
+    TokenData tokenData = TokenData(file);
 
-    writeln(to!string(tokenList.length) ~ " unique tokens");
-    writeln(to!string(tokens.length) ~ " tokens total");
+    writeln(to!string(tokenData.tokenList.length) ~ " unique tokens");
+    writeln(to!string(tokenData.tokens.length) ~ " tokens total");
     uint bitSize = 1;
-    while ((1 << (bitSize - 1)) < tokenList.length)
+    while ((1 << (bitSize - 1)) < tokenData.tokenList.length)
     {
         bitSize += 1;
     }
@@ -104,15 +113,37 @@ int compress(string source, string dest)
     auto destFile = new File(dest, "wb");
     char[4] header = "DLCF";
     destFile.rawWrite(header);
-    writeLittleInt(destFile, cast(uint) tokenList.length);
+    writeLittleInt(destFile, cast(uint) tokenData.tokenList.length);
     writeByte(destFile, cast(char) bitSize);
 
     // 3. Output the tokens as length-preceeded strings.
-    writeTokenList(destFile, tokenList);
+    writeTokenList(destFile, tokenData.tokenList);
 
     // 4. Output the indices as compressed binary.
-    writeCompactedTokens(destFile, tokens, bitSize);
+    writeCompactedTokens(destFile, tokenData.tokens, bitSize);
 
+    destFile.close();
+
+    return 0;
+}
+
+int dumpTokens(string source, string dest)
+{
+    if (exists(dest))
+    {
+        writeln("Error: destination already exists");
+        return 1;
+    }
+
+    char[] file = cast(char[]) read(source);
+
+    TokenData tokenData = TokenData(file);
+
+    auto destFile = new File(dest, "w");
+    for (int i = 0; i < tokenData.tokenList.length; i += 1)
+    {
+        destFile.writeln(to!string(i) ~ ", \"" ~ to!string(tokenData.tokenList[i].token) ~ "\"");
+    }
     destFile.close();
 
     return 0;
