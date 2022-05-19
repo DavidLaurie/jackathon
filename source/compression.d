@@ -16,7 +16,7 @@ void writeLittleShort(File* f, ushort s)
 {
     char[2] buffer = [
         s & 0xff,
-        (s & 0xff) >> 8,
+        (s & 0xff00) >> 8,
     ];
     f.rawWrite(buffer);
 }

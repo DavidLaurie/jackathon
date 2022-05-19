@@ -1,17 +1,32 @@
 <?php
 
+function getTempFileName(): string
+{
+    $filename = tempnam(sys_get_temp_dir(), 'david');
+    unlink($filename);
+    return $filename;
+}
+
 function compress(string $input): string
 {
-    $output = '';
+    $inFile = getTempFileName();
+    $outFile = getTempFileName();
 
-    return $output;
+    file_put_contents($inFile, $input);
+    print shell_exec("./jackathon compress {$inFile} {$outFile}");
+
+    return file_get_contents($outFile);
 }
 
 function decompress(string $input): string
 {
-    $output = '';
+    $inFile = getTempFileName();
+    $outFile = getTempFileName();
 
-    return $output;
+    file_put_contents($inFile, $input);
+    print shell_exec("./jackathon decompress {$inFile} {$outFile}");
+
+    return file_get_contents($outFile);
 }
 
 function test(): void
