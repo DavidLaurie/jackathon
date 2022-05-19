@@ -87,6 +87,21 @@ int getWord(char[] source)
             continue;
         }
 
+        // Count unicode as word chars
+        if ((source[i] & 0b11000000) == 0b10000000
+            || (source[i] & 0b11100000) == 0b11000000
+            || (source[i] & 0b11110000) == 0b11100000
+            || (source[i] & 0b11111000) == 0b11110000
+        ) {
+            continue;
+        }
+
+        // Count ext ascii as word chars
+        if (source[i] >= 0x80)
+        {
+            continue;
+        }
+
         break;
     }
     return i;
