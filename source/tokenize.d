@@ -3,35 +3,47 @@ module tokenize;
 import std.algorithm.comparison;
 import charstuff;
 
+struct TokenParams
+{
+    byte maxTokenLength;
+    bool numbersSeparate;
+}
+
 struct Token
 {
     char[] token;
 }
 
-Token getToken(char[] source)
+Token getToken(char[] source, TokenParams params = TokenParams(0))
 {
+    int maxTokenLength = params.maxTokenLength;
+    if (maxTokenLength == 0)
+    {
+        maxTokenLength = 256;
+    }
+
     Token token;
     int len;
 
-    len = min(getNewlines(source), 255);
+    len = min(getNewlines(source), maxTokenLength);
     if (len) {
         token.token = source[0..len];
         return token;
     }
 
-    len = min(getWhitespace(source), 255);
+    len = min(getWhitespace(source), maxTokenLength);
     if (len) {
         token.token = source[0..len];
         return token;
     }
 
-    len = min(getWord(source), 255);
+    len = min(getWord(source), maxTokenLength);
     if (len) {
         token.token = source[0..len];
         return token;
     }
 
-    len = min(getAnythingElse(source), 255);
+    len = min(getAnythingElse(source), maxTokenLength);
     if (len) {
         token.token = source[0..len];
         return token;
@@ -69,20 +81,26 @@ int getWhitespace(char[] source)
 int getWord(char[] source)
 {
     int i;
-
     for (i = 0; i < source.length; i += 1)
     {
         if (isWordChar(source[i]))
         {
             continue;
         }
+        break;
+    }
+    return i;
+}
 
-        // Allow one space after a 1 or 2 letter word to join with another word
-        // if (i > 1 && i < 4 && source[i] == ' ' && i < source.length - 1 && isWordChar(source[i+1]))
-        // {
-        //     continue;
-        // }
-
+int getNumber(char[] source)
+{
+    int i;
+    for (i = 0; i < source.length; i += 1)
+    {
+        if (isDigit(source[i]) || (i == 0 && source[i] == '-') || (i > 0 && source[i] == '.'))
+        {
+            continue;
+        }
         break;
     }
     return i;

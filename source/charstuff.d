@@ -32,3 +32,8 @@ bool isWordChar(char c)
 {
     return isAlpha(c) || isUnicode(c) || isExtAscii(c);
 }
+
+bool isDigit(char c)
+{
+    return 'c' >= '0' && c <= '9';
+}

@@ -65,23 +65,80 @@ struct TokenData
     uint[string] tokenIndex;
     uint[] tokens;
 
-    this(char[] file)
+    private int tokenListLength = 0;
+
+    this(char[] file, TokenParams params)
     {
         uint pos = 0;
         while (pos < file.length)
         {
-            Token token = getToken(file[pos..$]);
+            Token token = getToken(file[pos..$], params);
             auto ptr = (token.token in tokenIndex);
             if (ptr is null) {
                 tokenList ~= token;
                 tokenIndex[token.token.idup] = cast(uint)(tokenList.length - 1);
                 tokens ~= cast(uint)(tokenList.length - 1);
+                tokenListLength += token.token.length + 1;
             } else {
                 tokens ~= *ptr;
             }
             pos += token.token.length;
         }
     }
+
+    int getBitSize()
+    {
+        uint bitSize = 1;
+        while ((1 << (bitSize - 1)) < tokenList.length)
+        {
+            bitSize += 1;
+        }
+        return bitSize;
+    }
+
+    int getFileSize()
+    {
+        return cast(int)(tokenListLength + (tokens.length * getBitSize()) / 8);
+    }
+}
+
+TokenData getOptimalTokenData(char[] file)
+{
+    TokenParams[] paramSets = [
+        TokenParams(4),
+        TokenParams(6),
+        TokenParams(8),
+        TokenParams(10),
+        TokenParams(12),
+        TokenParams(14),
+        TokenParams(16),
+        TokenParams(20),
+        TokenParams(24),
+        TokenParams(28),
+        TokenParams(32),
+        TokenParams(36),
+        TokenParams(40),
+        TokenParams(48),
+        TokenParams(64),
+    ];
+
+    TokenParams bestParam = TokenParams(2);
+    TokenData best = TokenData(file, bestParam);
+    int bestSize = best.getFileSize();
+    foreach (TokenParams param; paramSets)
+    {
+        TokenData check = TokenData(file, param);
+        if (check.getFileSize() <= bestSize)
+        {
+            best = check;
+            bestSize = check.getFileSize();
+            bestParam = param;
+        }
+    }
+
+    writeln("Best parameterset was " ~ to!string(bestParam));
+
+    return best;
 }
 
 int compress(string source, string dest)
@@ -98,15 +155,12 @@ int compress(string source, string dest)
 
     // 1. Tokenize file into tokens.
     //    Generate a list of unique tokens in the order they were found, and a list of the indexes of each token that was found.
-    TokenData tokenData = TokenData(file);
+    //TokenData tokenData = TokenData(file);
+    TokenData tokenData = getOptimalTokenData(file);
+    uint bitSize = tokenData.getBitSize();
 
     writeln(to!string(tokenData.tokenList.length) ~ " unique tokens");
     writeln(to!string(tokenData.tokens.length) ~ " tokens total");
-    uint bitSize = 1;
-    while ((1 << (bitSize - 1)) < tokenData.tokenList.length)
-    {
-        bitSize += 1;
-    }
     writeln("Bitsize " ~ to!string(bitSize));
 
     // 2. Output the number of unique tokens, and the bit length required to index any token.
@@ -137,7 +191,7 @@ int dumpTokens(string source, string dest)
 
     char[] file = cast(char[]) read(source);
 
-    TokenData tokenData = TokenData(file);
+    TokenData tokenData = getOptimalTokenData(file);
 
     auto destFile = new File(dest, "w");
     for (int i = 0; i < tokenData.tokenList.length; i += 1)

@@ -31,6 +31,11 @@ uint readLittleInt(File* f)
 ReadToken readToken(File* f)
 {
     uint length = cast(uint)readByte(f);
+    if (length == 0)
+    {
+        length = 256;
+    }
+
     ReadToken token;
     token.length = length;
     f.rawRead(token);
