@@ -1,5 +1,49 @@
 module bits;
 
+import std.stdio;
+import filereadwrite;
+
+struct BitWriter
+{
+    File* f;
+    const int maxBits = 32;
+    uint current = 0;
+    int currentBits = 0;
+
+    this(File* f)
+    {
+        this.f = f;
+    }
+
+    void write(uint data, int dataBits)
+    {
+        data &= (1 << dataBits) - 1;
+        if (currentBits + dataBits >= maxBits)
+        {
+            current |= data << currentBits;
+            writeLittleInt(f, current);
+
+            current = data >> (maxBits - currentBits);
+            currentBits = (dataBits + currentBits) - maxBits;
+        }
+        else
+        {
+            current |= data << currentBits;
+            currentBits += dataBits;
+        }
+    }
+
+    void flush()
+    {
+        if (currentBits)
+        {
+            writeLittleInt(f, current);
+            current = 0;
+            currentBits = 0;
+        }
+    }
+}
+
 uint[] bitPack(uint[] data, int dataBits)
 {
     uint mask = (1 << dataBits) - 1;
@@ -33,6 +77,32 @@ uint[] bitPack(uint[] data, int dataBits)
     }
 
     return output;
+}
+
+struct BitReader
+{
+    File* f;
+    int currentBits = 0;
+    ulong current = 0;
+
+    this(File* f)
+    {
+        this.f = f;
+    }
+
+    uint read(int dataBits)
+    {
+        if (currentBits < dataBits)
+        {
+            current |= (cast(ulong)readLittleInt(f)) << currentBits;
+        }
+
+        uint mask = (1 << dataBits) - 1;
+        uint result = current & mask;
+        current >>= dataBits;
+        currentBits -= dataBits;
+        return result;
+    }
 }
 
 uint[] bitUnpack(uint[] data, uint expectedSize, int dataBits)

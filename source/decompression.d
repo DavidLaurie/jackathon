@@ -4,28 +4,14 @@ import std.stdio;
 import std.file;
 import std.conv;
 import bits;
+import filereadwrite;
 
 alias ReadToken = char[];
 
-char readByte(File* f)
+struct ReadTokenData
 {
-    char[1] buf;
-    f.rawRead(buf);
-    return buf[0];
-}
-
-ushort readLittleShort(File *f)
-{
-    char[2] buf;
-    f.rawRead(buf);
-    return buf[0] + (buf[1] << 8);
-}
-
-uint readLittleInt(File* f)
-{
-    char[4] buf;
-    f.rawRead(buf);
-    return buf[0] + (buf[1] << 8) + (buf[2] << 16) + (buf[3] << 24);
+    int index;
+    char[] value;
 }
 
 ReadToken readToken(File* f)
@@ -42,10 +28,9 @@ ReadToken readToken(File* f)
     return token;
 }
 
-uint[] readTokens(File* f, int bitSize)
+ReadTokenData[] readTokens(File* f, int bitSize)
 {
-    int numTokens = cast(int) readLittleInt(f);
-    int compressedDataSize = cast(int) readLittleInt(f);
+    int numTokens = cast(uint) readLittleInt(f);
     writeln(to!string(numTokens) ~ " tokens");
 
     if (bitSize >= 32)
@@ -53,13 +38,23 @@ uint[] readTokens(File* f, int bitSize)
         throw new Exception("Bitsize must be less than 32");
     }
 
-    uint[] data;
-    for (int i = 0; i < compressedDataSize; i += 1)
+    BitReader reader = BitReader(f);
+    ReadTokenData[] data;
+    for (int i = 0; i < numTokens; i += 1)
     {
-        data ~= readLittleInt(f);
+        ReadTokenData item;
+        item.index = reader.read(bitSize);
+        if (item.index == 0)
+        {
+            int count = reader.read(8);
+            for (int j = 0; j < count; j += 1)
+            {
+                item.value ~= reader.read(8);
+            }
+        }
+        data ~= item;
     }
-
-    return bitUnpack(data, numTokens, bitSize);
+    return data;
 }
 
 int decompress(string source, string dest)
@@ -91,19 +86,28 @@ int decompress(string source, string dest)
 
     // 2. Allocate token list and read the strings.
     ReadToken[] tokenList;
+    char[] nullToken;
+    tokenList ~= nullToken;
     for (auto i = 0; i < numTokenList; i += 1)
     {
         tokenList ~= readToken(input);
     }
 
     // 3. Read the remainder of the file and uncompact it to a token list.
-    uint[] tokens = readTokens(input, bitSize);
+    ReadTokenData[] data = readTokens(input, bitSize);
 
     // 4. Write all the tokens.
     auto destFile = new File(dest, "wb");
-    foreach (uint token; tokens)
+    foreach (ReadTokenData item; data)
     {
-        destFile.rawWrite(tokenList[token]);
+        if (item.index == 0)
+        {
+            destFile.rawWrite(item.value);
+        }
+        else
+        {
+            destFile.rawWrite(tokenList[item.index]);
+        }
     }
 
     return 0;

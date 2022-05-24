@@ -9,12 +9,13 @@ struct TokenParams
     bool quotedWords;
 }
 
-struct Token
+struct ParseToken
 {
     char[] token;
+    int count;
 }
 
-Token getToken(char[] source, TokenParams params = TokenParams(64))
+ParseToken getToken(char[] source, TokenParams params = TokenParams(64))
 {
     int maxTokenLength = params.maxTokenLength;
     if (maxTokenLength == 0)
@@ -22,7 +23,7 @@ Token getToken(char[] source, TokenParams params = TokenParams(64))
         maxTokenLength = 256;
     }
 
-    Token token;
+    ParseToken token;
     int len;
 
     len = min(getNewlines(source), maxTokenLength);
